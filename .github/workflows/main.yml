@@ -1,0 +1,55 @@
+name: Build Windows
+
+on:
+  push:
+    branches: [ "master", "main" ]
+  pull_request:
+    branches: [ "master", "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-2022
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Install Qt
+      uses: jurplel/install-qt-action@v3
+      with:
+        version: '5.15.2'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2019_64'
+
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Build TuyaBridge
+      run: |
+        cd web-ui/server
+        npm install
+        npm install -g pkg
+        pkg tuya-proxy.js --targets node18-win-x64 --output TuyaBridge.exe
+
+    - name: Build OpenRGB
+      run: |
+        qmake OpenRGB.pro CONFIG-=debug_and_release CONFIG+=release
+        nmake
+
+    - name: Deploy Qt Dependencies
+      run: |
+        windeployqt --no-patchqt --no-quick-import --no-translations --no-system-d3d-compiler --no-compiler-runtime --no-opengl-sw release/
+        copy web-ui\server\TuyaBridge.exe release\
+
+    - name: Upload Build Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: OpenRGB-Windows-64bit
+        path: release/
