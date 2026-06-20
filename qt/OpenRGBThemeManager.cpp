@@ -80,18 +80,21 @@ void OpenRGBThemeManager::SetDarkTheme()
     | Apply Modern Glass-like QSS Styling               |
     \*-------------------------------------------------*/
     QString modernQSS = 
-        "QWidget { background-color: #1e1e24; color: #f5f5f5; font-family: 'Segoe UI', sans-serif; }"
-        "QPushButton { background-color: #2b2b36; border: 1px solid #3c3c4a; border-radius: 6px; padding: 6px 12px; font-weight: 500; }"
-        "QPushButton:hover { background-color: #3e3e50; border-color: #55556b; }"
-        "QPushButton:pressed { background-color: #2b2b36; }"
-        "QTabBar::tab { background-color: #2b2b36; border: 1px solid #3c3c4a; border-top-left-radius: 4px; border-top-right-radius: 4px; padding: 6px 16px; margin-right: 2px; }"
-        "QTabBar::tab:selected { background-color: #3e3e50; border-color: #6a6a8a; font-weight: bold; border-bottom-color: #3e3e50; }"
-        "QSlider::groove:horizontal { border: 1px solid #3c3c4a; height: 6px; background: #15151a; border-radius: 3px; }"
+        "QMainWindow, QDialog { background: transparent; }"
+        "QWidget#centralwidget, QWidget#scrollAreaWidgetContents { background: rgba(30, 30, 36, 120); }"
+        "QWidget { color: #f5f5f5; font-family: 'Segoe UI', sans-serif; }"
+        "QPushButton { background-color: rgba(43, 43, 54, 200); border: 1px solid rgba(60, 60, 74, 200); border-radius: 6px; padding: 6px 12px; font-weight: 500; }"
+        "QPushButton:hover { background-color: rgba(62, 62, 80, 220); border-color: rgba(85, 85, 107, 220); }"
+        "QPushButton:pressed { background-color: rgba(43, 43, 54, 200); }"
+        "QTabBar::tab { background-color: rgba(43, 43, 54, 200); border: 1px solid rgba(60, 60, 74, 200); border-top-left-radius: 4px; border-top-right-radius: 4px; padding: 6px 16px; margin-right: 2px; }"
+        "QTabBar::tab:selected { background-color: rgba(62, 62, 80, 220); border-color: rgba(106, 106, 138, 220); font-weight: bold; border-bottom-color: rgba(62, 62, 80, 220); }"
+        "QSlider::groove:horizontal { border: 1px solid rgba(60, 60, 74, 200); height: 6px; background: rgba(21, 21, 26, 150); border-radius: 3px; }"
         "QSlider::handle:horizontal { background: #5c5c77; border: 1px solid #7a7a99; width: 14px; margin: -4px 0; border-radius: 7px; }"
         "QSlider::handle:horizontal:hover { background: #7a7a99; }"
-        "QComboBox { background-color: #2b2b36; border: 1px solid #3c3c4a; border-radius: 4px; padding: 4px 8px; }"
+        "QComboBox { background-color: rgba(43, 43, 54, 200); border: 1px solid rgba(60, 60, 74, 200); border-radius: 4px; padding: 4px 8px; }"
         "QComboBox::drop-down { border: 0px; }"
-        "QLineEdit, QSpinBox { background-color: #15151a; border: 1px solid #3c3c4a; border-radius: 4px; padding: 4px; color: #ffffff; }";
+        "QScrollArea { border: none; background: transparent; }"
+        "QLineEdit, QSpinBox { background-color: rgba(21, 21, 26, 150); border: 1px solid rgba(60, 60, 74, 200); border-radius: 4px; padding: 4px; color: #ffffff; }";
     
     qApp->setStyleSheet(modernQSS);
 }

@@ -41,6 +41,30 @@
 #include "macutils.h"
 #endif
 
+#ifdef _WIN32
+#include <windows.h>
+enum AccentState {
+    ACCENT_DISABLED = 0,
+    ACCENT_ENABLE_GRADIENT = 1,
+    ACCENT_ENABLE_TRANSPARENTGRADIENT = 2,
+    ACCENT_ENABLE_BLURBEHIND = 3,
+    ACCENT_ENABLE_ACRYLICBLURBEHIND = 4,
+    ACCENT_INVALID_STATE = 5
+};
+struct AccentPolicy {
+    AccentState AccentState;
+    int AccentFlags;
+    int GradientColor;
+    int AnimationId;
+};
+struct WindowCompositionAttributeData {
+    int Attribute;
+    PVOID Data;
+    int SizeOfData;
+};
+typedef HRESULT(WINAPI* pSetWindowCompositionAttribute)(HWND, WindowCompositionAttributeData*);
+#endif
+
 static int GetIcon(device_type type)
 {
     /*-----------------------------------------------------*\
@@ -187,6 +211,24 @@ bool OpenRGBDialog::IsMinimizeOnClose()
 OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::OpenRGBDialog)
 {
     ui->setupUi(this);
+
+#ifdef _WIN32
+    /*-----------------------------------------------------*\
+    | Enable Native Windows 11 Acrylic Glassmorphism        |
+    \*-----------------------------------------------------*/
+    this->setAttribute(Qt::WA_TranslucentBackground);
+    
+    HWND hwnd = (HWND)this->winId();
+    HMODULE hUser = GetModuleHandle(TEXT("user32.dll"));
+    if (hUser) {
+        pSetWindowCompositionAttribute setWindowCompositionAttribute = (pSetWindowCompositionAttribute)GetProcAddress(hUser, "SetWindowCompositionAttribute");
+        if (setWindowCompositionAttribute) {
+            AccentPolicy policy = { ACCENT_ENABLE_ACRYLICBLURBEHIND, 2, 0x401e1e24, 0 }; // 40 alpha dark grey
+            WindowCompositionAttributeData data = { 19, &policy, sizeof(AccentPolicy) };
+            setWindowCompositionAttribute(hwnd, &data);
+        }
+    }
+#endif
 
     /*-----------------------------------------------------*\
     | Set window icon                                       |
