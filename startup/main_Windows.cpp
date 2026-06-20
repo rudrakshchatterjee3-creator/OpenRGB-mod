@@ -592,11 +592,34 @@ static int common_main(int argc, char* argv[])
     }
 
     /*-----------------------------------------------------*\
+    | Launch TuyaBridge.exe invisibly in background         |
+    \*-----------------------------------------------------*/
+    STARTUPINFO si;
+    PROCESS_INFORMATION pi;
+    ZeroMemory(&si, sizeof(si));
+    si.cb = sizeof(si);
+    si.dwFlags = STARTF_USESHOWWINDOW;
+    si.wShowWindow = SW_HIDE;
+    ZeroMemory(&pi, sizeof(pi));
+    
+    CreateProcess(NULL, (LPSTR)"TuyaBridge.exe", NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+
+    /*-----------------------------------------------------*\
     | Perform application startup and run the application.  |
     | This call returns only when the GUI application is    |
     | closing or if not running the GUI.                    |
     \*-----------------------------------------------------*/
     int exitval = startup(argc, argv, ret_flags);
+
+    /*-----------------------------------------------------*\
+    | Kill TuyaBridge.exe when OpenRGB exits                |
+    \*-----------------------------------------------------*/
+    if(pi.hProcess)
+    {
+        TerminateProcess(pi.hProcess, 0);
+        CloseHandle(pi.hProcess);
+        CloseHandle(pi.hThread);
+    }
 
     /*-----------------------------------------------------*\
     | If running as a service, unregister the service       |
