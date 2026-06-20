@@ -609,7 +609,7 @@ static int common_main(int argc, char* argv[])
     \*-----------------------------------------------------*/
     if(!(ret_flags & RET_FLAG_NO_AUTO_CONNECT))
     {
-        system("start msedge --app=http://localhost:3000 --window-size=1200,800");
+        ShellExecuteA(NULL, "open", "msedge", "--app=http://localhost:3000 --window-size=1200,800", NULL, SW_SHOW);
     }
     /*-----------------------------------------------------*\
     | Perform application startup and run the application.  |

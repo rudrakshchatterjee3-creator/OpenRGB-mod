@@ -25,11 +25,15 @@ console.log('[WebSocket] Listening for React UI on port 3001...');
 // Connect OpenRGB SDK Client
 const sdkClient = new Client('TuyaBridge', 6742, '127.0.0.1');
 
-sdkClient.connect().then(() => {
-    console.log('[OpenRGB SDK] Connected successfully!');
-}).catch(err => {
-    console.log('[OpenRGB SDK] Not available (OpenRGB might still be starting)', err.message);
-});
+const connectWithRetry = () => {
+    sdkClient.connect().then(() => {
+        console.log('[OpenRGB SDK] Connected successfully!');
+    }).catch(err => {
+        console.log('[OpenRGB SDK] Not available yet, retrying in 2 seconds...', err.message);
+        setTimeout(connectWithRetry, 2000);
+    });
+};
+connectWithRetry();
 
 wss.on('connection', (ws) => {
     console.log('[WebSocket] React UI Connected!');
@@ -41,11 +45,24 @@ wss.on('connection', (ws) => {
             const devicesList = [];
             for (let i = 0; i < numDevices; i++) {
                 const device = await sdkClient.getControllerData(i);
+                
+                // Get the actual color of the first LED, fallback to #ffffff
+                let deviceColor = '#ffffff';
+                if (device.colors && device.colors.length > 0) {
+                    const c = device.colors[0];
+                    deviceColor = '#' + [c.red, c.green, c.blue].map(x => {
+                        const hex = x.toString(16);
+                        return hex.length === 1 ? '0' + hex : hex;
+                    }).join('');
+                }
+
                 devicesList.push({
                     id: i,
                     name: device.name,
-                    color: '#ffffff', // default UI state
-                    activeMode: 'Direct'
+                    type: device.type || 'Unknown',
+                    color: deviceColor,
+                    activeMode: device.activeMode !== undefined && device.modes ? device.modes[device.activeMode].name : 'Direct',
+                    modes: device.modes ? device.modes.map(m => m.name) : ['Direct']
                 });
             }
             ws.send(JSON.stringify({ type: 'DEVICES_LIST', payload: devicesList }));
@@ -68,6 +85,13 @@ wss.on('connection', (ws) => {
                 const device = await sdkClient.getControllerData(msg.deviceId);
                 const colors = Array(device.leds.length).fill({ red: r, green: g, blue: b });
                 await sdkClient.updateLeds(msg.deviceId, colors);
+            } else if (msg.type === 'UPDATE_MODE') {
+                // Update device mode
+                const device = await sdkClient.getControllerData(msg.deviceId);
+                const modeIndex = device.modes.findIndex(m => m.name === msg.modeName);
+                if (modeIndex !== -1) {
+                    await sdkClient.updateMode(msg.deviceId, modeIndex);
+                }
             }
         } catch (e) {
             console.error('[WebSocket] Error processing message:', e.message);

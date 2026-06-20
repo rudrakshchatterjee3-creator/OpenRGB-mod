@@ -66,6 +66,17 @@ function App() {
     }));
   };
 
+  const handleTurnOffAll = () => {
+    if (!ws || devices.length === 0) return;
+    devices.forEach(d => {
+      ws.send(JSON.stringify({
+        type: 'UPDATE_COLOR',
+        deviceId: d.id,
+        color: '#000000'
+      }));
+    });
+  };
+
   if (!selectedDevice && devices.length === 0) {
       return (
           <div style={{ width: '100vw', height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column', gap: '20px' }}>
@@ -127,7 +138,7 @@ function App() {
               <h1 style={{ fontSize: '28px', marginBottom: '4px' }}>Dashboard</h1>
               <p style={{ color: 'var(--text-muted)' }}>Manage your RGB ecosystem</p>
             </div>
-            <button className="glass-button" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,50,50,0.2)', border: '1px solid rgba(255,50,50,0.3)', color: '#ff6b6b' }}>
+            <button onClick={handleTurnOffAll} className="glass-button" style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,50,50,0.2)', border: '1px solid rgba(255,50,50,0.3)', color: '#ff6b6b' }}>
               <Power size={18} /> Turn Off All
             </button>
           </header>
