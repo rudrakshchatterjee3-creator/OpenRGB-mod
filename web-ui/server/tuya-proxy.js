@@ -12,8 +12,13 @@ const app = express();
 app.use(express.static(path.join(__dirname, 'ui_dist')));
 
 // Fallback for React Router / SPA
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'ui_dist/index.html'));
+app.use((req, res, next) => {
+    // Only serve index.html for non-API routes (GET requests accepting html)
+    if (req.method === 'GET' && req.accepts('html')) {
+        res.sendFile(path.join(__dirname, 'ui_dist/index.html'));
+    } else {
+        next();
+    }
 });
 
 const httpServer = http.createServer(app);
@@ -187,6 +192,7 @@ function processPendingPacket() {
     device.set({
         multiple: true,
         data: {
+            '20': true,
             '21': 'colour',
             '24': colorStr
         }
