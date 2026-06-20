@@ -9,11 +9,11 @@ const { Client } = require('openrgb-sdk');
 
 // Start Express Server to serve React UI
 const app = express();
-app.use(express.static(path.join(__dirname, '../dist')));
+app.use(express.static(path.join(__dirname, 'ui_dist')));
 
 // Fallback for React Router / SPA
 app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
+    res.sendFile(path.join(__dirname, 'ui_dist/index.html'));
 });
 
 const httpServer = http.createServer(app);
