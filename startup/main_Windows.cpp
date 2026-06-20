@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <windows.h>
+#include <shellapi.h>
 #include <thread>
 
 #include <QApplication>
