@@ -232,8 +232,10 @@ OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::
     /*-----------------------------------------------------*\
     | Hide the Qt window to let Edge App Mode be primary    |
     \*-----------------------------------------------------*/
+    qApp->setQuitOnLastWindowClosed(false);
     QTimer::singleShot(0, this, [this](){
         this->hide();
+        if(trayIcon) trayIcon->show();
     });
 
     /*-----------------------------------------------------*\

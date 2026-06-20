@@ -11,6 +11,11 @@ const { Client } = require('openrgb-sdk');
 const app = express();
 app.use(express.static(path.join(__dirname, '../dist')));
 
+// Fallback for React Router / SPA
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
+
 const httpServer = http.createServer(app);
 
 // Start WebSocket server on same port (3001) for the Web UI to connect
