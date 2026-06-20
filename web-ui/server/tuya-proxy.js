@@ -11,7 +11,9 @@ const device = new TuyaDevice({
 let isConnected = false;
 let isSending = false;
 let lastUpdate = 0;
-const RATE_LIMIT_MS = 150; // Throttle to prevent Tuya command queue backlog
+const RATE_LIMIT_MS = 100; // Tweaked for faster response
+
+let pendingColor = null;
 
 // Connect to Tuya Bulb
 device.find().then(() => {
@@ -64,32 +66,22 @@ function formatTuyaColorString(h, s, v) {
     return hexH + hexS + hexV;
 }
 
-// Start E1.31 (sACN) Server
-const e131Server = new Server(5568);
-console.log('[E1.31] Listening for OpenRGB packets on port 5568...');
-
-e131Server.on('packet', (packet) => {
-    if (!isConnected || isSending) return;
+function processPendingPacket() {
+    if (isSending || !pendingColor) return;
     
-    // Rate limit to prevent flooding the bulb
     const now = Date.now();
-    if (now - lastUpdate < RATE_LIMIT_MS) return;
+    if (now - lastUpdate < RATE_LIMIT_MS) {
+        // Wait until the rate limit allows us to send again
+        setTimeout(processPendingPacket, RATE_LIMIT_MS - (now - lastUpdate));
+        return;
+    }
     
-    lastUpdate = now;
+    // Lock and pop the color
     isSending = true;
+    lastUpdate = Date.now();
+    const colorStr = pendingColor;
+    pendingColor = null;
 
-    const slotsData = packet.getSlotsData();
-    // OpenRGB E1.31 device maps RGB sequentially starting at index 1 (sACN standard)
-    // E1.31 channels are 1-indexed in the standard, but the buffer is 0-indexed.
-    const r = slotsData[0];
-    const g = slotsData[1];
-    const b = slotsData[2];
-
-    const [h, s, v] = rgbToHsv(r, g, b);
-    const colorStr = formatTuyaColorString(h, s, v);
-
-    // Send the color to the bulb
-    // DPS 21 is usually the mode (colour/white), DPS 24 is the color string
     device.set({
         multiple: true,
         data: {
@@ -98,7 +90,31 @@ e131Server.on('packet', (packet) => {
         }
     }).then(() => {
         isSending = false;
+        // Check if a new frame piled up while we were sending!
+        processPendingPacket();
     }).catch(err => {
         isSending = false;
+        processPendingPacket();
     });
+}
+
+// Start E1.31 (sACN) Server
+const e131Server = new Server(5568);
+console.log('[E1.31] Listening for OpenRGB packets on port 5568...');
+
+e131Server.on('packet', (packet) => {
+    if (!isConnected) return;
+    
+    const slotsData = packet.getSlotsData();
+    const r = slotsData[0];
+    const g = slotsData[1];
+    const b = slotsData[2];
+
+    const [h, s, v] = rgbToHsv(r, g, b);
+    
+    // Always overwrite with the absolute newest requested color
+    pendingColor = formatTuyaColorString(h, s, v);
+    
+    // Trigger the queue processor
+    processPendingPacket();
 });
