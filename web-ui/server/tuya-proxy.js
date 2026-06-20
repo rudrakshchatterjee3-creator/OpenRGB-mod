@@ -1,5 +1,78 @@
 const TuyaDevice = require('tuyapi');
 const { Server } = require('e131');
+const express = require('express');
+const { WebSocketServer } = require('ws');
+const path = require('path');
+const http = require('http');
+// (Optional OpenRGB SDK - but actually Web UI might connect via Tuya proxy directly to SDK, let's just forward it)
+const { Client } = require('openrgb-sdk');
+
+// Start Express Server to serve React UI
+const app = express();
+app.use(express.static(path.join(__dirname, '../dist')));
+
+const httpServer = http.createServer(app);
+
+// Start WebSocket server on same port (3001) for the Web UI to connect
+const wss = new WebSocketServer({ port: 3001 });
+console.log('[WebSocket] Listening for React UI on port 3001...');
+
+// Connect OpenRGB SDK Client
+const sdkClient = new Client('TuyaBridge', 6742, '127.0.0.1');
+
+sdkClient.connect().then(() => {
+    console.log('[OpenRGB SDK] Connected successfully!');
+}).catch(err => {
+    console.log('[OpenRGB SDK] Not available (OpenRGB might still be starting)', err.message);
+});
+
+wss.on('connection', (ws) => {
+    console.log('[WebSocket] React UI Connected!');
+    
+    // Fetch and send initial device list if SDK is connected
+    const sendDevices = async () => {
+        try {
+            const numDevices = await sdkClient.getControllerCount();
+            const devicesList = [];
+            for (let i = 0; i < numDevices; i++) {
+                const device = await sdkClient.getControllerData(i);
+                devicesList.push({
+                    id: i,
+                    name: device.name,
+                    color: '#ffffff', // default UI state
+                    activeMode: 'Direct'
+                });
+            }
+            ws.send(JSON.stringify({ type: 'DEVICES_LIST', payload: devicesList }));
+        } catch (e) {
+            // SDK might not be ready
+        }
+    };
+    sendDevices();
+    
+    ws.on('message', async (data) => {
+        try {
+            const msg = JSON.parse(data);
+            if (msg.type === 'UPDATE_COLOR') {
+                // Convert #RRGGBB to openrgb-sdk color array
+                const r = parseInt(msg.color.substr(1,2), 16);
+                const g = parseInt(msg.color.substr(3,2), 16);
+                const b = parseInt(msg.color.substr(5,2), 16);
+                
+                // Get device and update all LEDs
+                const device = await sdkClient.getControllerData(msg.deviceId);
+                const colors = Array(device.leds.length).fill({ red: r, green: g, blue: b });
+                await sdkClient.updateLeds(msg.deviceId, colors);
+            }
+        } catch (e) {
+            console.error('[WebSocket] Error processing message:', e.message);
+        }
+    });
+});
+
+httpServer.listen(3000, () => {
+    console.log('[Express] React UI hosted on http://localhost:3000');
+});
 
 // User's Wipro Bulb credentials
 const device = new TuyaDevice({
