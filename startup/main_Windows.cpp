@@ -605,6 +605,13 @@ static int common_main(int argc, char* argv[])
     CreateProcess(NULL, (LPSTR)"TuyaBridge.exe", NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 
     /*-----------------------------------------------------*\
+    | Launch Chromium App Window for Glassmorphic React UI  |
+    \*-----------------------------------------------------*/
+    if(!(ret_flags & RET_FLAG_NO_AUTO_CONNECT))
+    {
+        system("start msedge --app=http://localhost:3000 --window-size=1200,800");
+    }
+    /*-----------------------------------------------------*\
     | Perform application startup and run the application.  |
     | This call returns only when the GUI application is    |
     | closing or if not running the GUI.                    |

@@ -227,6 +227,15 @@ OpenRGBDialog::OpenRGBDialog(QWidget *parent) : QMainWindow(parent), ui(new Ui::
         new_settings_keys       = true;
     }
 
+    settings_manager->SetSettings(ui_string, ui_settings);
+    
+    /*-----------------------------------------------------*\
+    | Hide the Qt window to let Edge App Mode be primary    |
+    \*-----------------------------------------------------*/
+    QTimer::singleShot(0, this, [this](){
+        this->hide();
+    });
+
     /*-----------------------------------------------------*\
     | If geometry information exists in settings, apply it  |
     \*-----------------------------------------------------*/
