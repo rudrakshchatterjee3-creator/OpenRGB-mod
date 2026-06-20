@@ -9,8 +9,9 @@ const device = new TuyaDevice({
 });
 
 let isConnected = false;
+let isSending = false;
 let lastUpdate = 0;
-const RATE_LIMIT_MS = 50; // Max ~20 FPS to prevent hardware crashes
+const RATE_LIMIT_MS = 150; // Throttle to prevent Tuya command queue backlog
 
 // Connect to Tuya Bulb
 device.find().then(() => {
@@ -68,12 +69,14 @@ const e131Server = new Server(5568);
 console.log('[E1.31] Listening for OpenRGB packets on port 5568...');
 
 e131Server.on('packet', (packet) => {
-    if (!isConnected) return;
+    if (!isConnected || isSending) return;
     
     // Rate limit to prevent flooding the bulb
     const now = Date.now();
     if (now - lastUpdate < RATE_LIMIT_MS) return;
+    
     lastUpdate = now;
+    isSending = true;
 
     const slotsData = packet.getSlotsData();
     // OpenRGB E1.31 device maps RGB sequentially starting at index 1 (sACN standard)
@@ -93,7 +96,9 @@ e131Server.on('packet', (packet) => {
             '21': 'colour',
             '24': colorStr
         }
+    }).then(() => {
+        isSending = false;
     }).catch(err => {
-        // Ignore minor socket drops
+        isSending = false;
     });
 });
