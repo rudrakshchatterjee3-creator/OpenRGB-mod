@@ -608,7 +608,17 @@ static int common_main(int argc, char* argv[])
     std::string dirPath = exePathStr.substr(0, exePathStr.find_last_of("\\/"));
     std::string bridgePath = dirPath + "\\TuyaBridge.exe";
 
-    CreateProcessA(NULL, (LPSTR)bridgePath.c_str(), NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+    // Pass the absolute path as lpApplicationName (1st arg) to prevent CreateProcess from failing if the path contains spaces
+    if (CreateProcessA((LPCSTR)bridgePath.c_str(), NULL, NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi)) {
+        // Assign to a Job Object so Windows automatically kills TuyaBridge if OpenRGB crashes
+        HANDLE hJob = CreateJobObjectA(NULL, NULL);
+        if (hJob) {
+            JOBOBJECT_EXTENDED_LIMIT_INFORMATION jeli = { 0 };
+            jeli.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE;
+            SetInformationJobObject(hJob, JobObjectExtendedLimitInformation, &jeli, sizeof(jeli));
+            AssignProcessToJobObject(hJob, pi.hProcess);
+        }
+    }
 
     /*-----------------------------------------------------*\
     | Launch UI in default browser to guarantee it opens    |
@@ -626,7 +636,7 @@ static int common_main(int argc, char* argv[])
     int exitval = startup(argc, argv, ret_flags);
 
     /*-----------------------------------------------------*\
-    | Kill TuyaBridge.exe when OpenRGB exits                |
+    | Kill TuyaBridge.exe cleanly when OpenRGB exits        |
     \*-----------------------------------------------------*/
     if(pi.hProcess)
     {

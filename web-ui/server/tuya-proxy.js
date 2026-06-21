@@ -148,13 +148,17 @@ const RATE_LIMIT_MS = 30; // Increased to 33 FPS for ultra-smooth fan sync
 let pendingColor = null;
 let streamStarted = false; // Track if we've initialized the stream
 
-// Connect to Tuya Bulb
-device.find().then(() => {
-  console.log('[Tuya] Bulb found on network!');
-  device.connect();
-}).catch(err => {
-    console.error('[Tuya] Failed to find bulb automatically. Ensure it is on the same Wi-Fi.', err);
-});
+// Connect to Tuya Bulb with a persistent retry loop
+const findAndConnect = () => {
+    device.find().then(() => {
+        console.log('[Tuya] Bulb found on network!');
+        device.connect();
+    }).catch(err => {
+        console.error('[Tuya] Failed to find bulb automatically. Retrying in 5 seconds...', err.message);
+        setTimeout(findAndConnect, 5000);
+    });
+};
+findAndConnect();
 
 device.on('connected', () => {
   console.log('[Tuya] Connected to Bulb successfully!');
