@@ -9,15 +9,40 @@ const { Client } = require('openrgb-sdk');
 
 // Start Express Server to serve React UI
 const app = express();
-app.use(express.static(path.join(__dirname, 'ui_dist')));
+
+let uiBundle = null;
+try {
+    uiBundle = require('./bundled_ui.json');
+} catch(e) {
+    console.error('Failed to load UI bundle. Did you run postinstall?');
+}
 
 // Fallback for React Router / SPA
 app.use((req, res, next) => {
-    // Only serve index.html for non-API routes (GET requests accepting html)
-    if (req.method === 'GET' && req.accepts('html')) {
-        res.sendFile(path.join(__dirname, 'ui_dist/index.html'));
+    if (!uiBundle) {
+        return res.status(500).send('UI Bundle Not Loaded');
+    }
+    
+    let reqPath = req.path;
+    if (reqPath === '/') reqPath = '/index.html';
+
+    // If file exists in bundle, serve it
+    if (uiBundle[reqPath]) {
+        const file = uiBundle[reqPath];
+        res.type(file.mime);
+        res.send(Buffer.from(file.data, 'base64'));
+    } 
+    // Otherwise fallback to index.html for SPA routing
+    else if (req.method === 'GET' && req.accepts('html')) {
+        const file = uiBundle['/index.html'];
+        if (file) {
+            res.type(file.mime);
+            res.send(Buffer.from(file.data, 'base64'));
+        } else {
+            res.status(404).send('index.html not found in bundle');
+        }
     } else {
-        next();
+        res.status(404).send('Not Found');
     }
 });
 
