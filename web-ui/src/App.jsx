@@ -239,6 +239,16 @@ function App() {
                     <h4>OpenRGB SDK Connection</h4>
                     <p style={{ color: devices.length > 0 ? '#4cd137' : '#e84118', marginTop: '8px' }}>{devices.length > 0 ? `Connected (${devices.length} devices detected)` : 'Searching...'}</p>
                   </div>
+                  
+                  <div style={{ marginTop: '20px', padding: '20px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}>
+                    <h4 style={{ color: 'var(--accent-blue)' }}>Looking for advanced options?</h4>
+                    <p style={{ color: 'var(--text-muted)', marginTop: '8px', lineHeight: '1.5' }}>
+                      This Web Dashboard is designed for real-time syncing and Web-Exclusive features. 
+                      For deep hardware configuration, firmware flashing, and I2C tools, please use the native OpenRGB application. 
+                      <br/><br/>
+                      <strong>Double-click the OpenRGB icon in your Windows System Tray (bottom right) to open the full native application.</strong>
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

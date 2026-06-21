@@ -108,17 +108,34 @@ wss.on('connection', (ws) => {
     const pollInterval = setInterval(sendDevices, 2000);
     ws.on('close', () => clearInterval(pollInterval));
     
+    // Safety rate limit map to prevent SMBus BSODs
+    const deviceLastUpdate = {};
+
     ws.on('message', async (data) => {
         try {
             const msg = JSON.parse(data);
             if (msg.type === 'UPDATE_COLOR') {
+                const now = Date.now();
+                
                 // Convert #RRGGBB to openrgb-sdk color array
                 const r = parseInt(msg.color.substr(1,2), 16);
                 const g = parseInt(msg.color.substr(3,2), 16);
                 const b = parseInt(msg.color.substr(5,2), 16);
                 
-                // Get device and update all LEDs
+                // Get device info to check hardware type
                 const device = await sdkClient.getControllerData(msg.deviceId);
+                
+                // CRITICAL SAFETY CHECK: Motherboards, DRAM, and GPUs use the SMBus.
+                // Updating SMBus devices faster than ~1000ms will corrupt the SPD or deadlock the bus, causing a hard BSOD.
+                // USB devices (keyboards, strips) can be updated rapidly (50ms).
+                const isSMBus = device.type === 'Motherboard' || device.type === 'DRAM' || device.type === 'GPU';
+                const safeRateLimit = isSMBus ? 1000 : 50; 
+                
+                if (deviceLastUpdate[msg.deviceId] && now - deviceLastUpdate[msg.deviceId] < safeRateLimit) {
+                    return; // Drop rapid frame to prevent BSOD
+                }
+                deviceLastUpdate[msg.deviceId] = now;
+
                 const colors = Array(device.leds.length).fill({ red: r, green: g, blue: b });
                 await sdkClient.updateLeds(msg.deviceId, colors);
             } else if (msg.type === 'UPDATE_MODE') {
