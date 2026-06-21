@@ -595,22 +595,28 @@ static int common_main(int argc, char* argv[])
     /*-----------------------------------------------------*\
     | Launch TuyaBridge.exe invisibly in background         |
     \*-----------------------------------------------------*/
-    STARTUPINFO si;
+    STARTUPINFOA si;
     PROCESS_INFORMATION pi;
     ZeroMemory(&si, sizeof(si));
     si.cb = sizeof(si);
-    si.dwFlags = STARTF_USESHOWWINDOW;
-    si.wShowWindow = SW_HIDE;
     ZeroMemory(&pi, sizeof(pi));
-    
-    CreateProcess(NULL, (LPSTR)"TuyaBridge.exe", NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
+
+    // Get absolute path to the directory containing OpenRGB.exe
+    char exePath[MAX_PATH];
+    GetModuleFileNameA(NULL, exePath, MAX_PATH);
+    std::string exePathStr(exePath);
+    std::string dirPath = exePathStr.substr(0, exePathStr.find_last_of("\\/"));
+    std::string bridgePath = dirPath + "\\TuyaBridge.exe";
+
+    CreateProcessA(NULL, (LPSTR)bridgePath.c_str(), NULL, NULL, FALSE, CREATE_NO_WINDOW, NULL, NULL, &si, &pi);
 
     /*-----------------------------------------------------*\
-    | Launch Chromium App Window for Glassmorphic React UI  |
+    | Launch UI in default browser to guarantee it opens    |
     \*-----------------------------------------------------*/
     if(!(ret_flags & RET_FLAG_NO_AUTO_CONNECT))
     {
-        ShellExecuteA(NULL, "open", "msedge", "--app=http://localhost:3000 --window-size=1200,800", NULL, SW_SHOW);
+        // Simply open the URL. This guarantees the UI will appear in their default browser (Chrome/Edge/Firefox)
+        ShellExecuteA(NULL, "open", "http://localhost:3000", NULL, NULL, SW_SHOW);
     }
     /*-----------------------------------------------------*\
     | Perform application startup and run the application.  |

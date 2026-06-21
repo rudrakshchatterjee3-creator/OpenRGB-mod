@@ -118,9 +118,10 @@ const device = new TuyaDevice({
 let isConnected = false;
 let isSending = false;
 let lastUpdate = 0;
-const RATE_LIMIT_MS = 100; // Tweaked for faster response
+const RATE_LIMIT_MS = 30; // Increased to 33 FPS for ultra-smooth fan sync
 
 let pendingColor = null;
+let streamStarted = false; // Track if we've initialized the stream
 
 // Connect to Tuya Bulb
 device.find().then(() => {
@@ -133,11 +134,13 @@ device.find().then(() => {
 device.on('connected', () => {
   console.log('[Tuya] Connected to Bulb successfully!');
   isConnected = true;
+  streamStarted = false;
 });
 
 device.on('disconnected', () => {
   console.log('[Tuya] Disconnected from Bulb.');
   isConnected = false;
+  streamStarted = false;
 });
 
 device.on('error', error => {
@@ -189,15 +192,16 @@ function processPendingPacket() {
     const colorStr = pendingColor;
     pendingColor = null;
 
+    // Send full payload on first frame to ensure it's ON and in COLOUR mode.
+    // Afterwards, ONLY send the colour data to minimize TCP payload latency!
+    const payload = streamStarted ? { '24': colorStr } : { '20': true, '21': 'colour', '24': colorStr };
+    
     device.set({
         multiple: true,
-        data: {
-            '20': true,
-            '21': 'colour',
-            '24': colorStr
-        }
+        data: payload
     }).then(() => {
         isSending = false;
+        streamStarted = true;
         // Check if a new frame piled up while we were sending!
         processPendingPacket();
     }).catch(err => {
