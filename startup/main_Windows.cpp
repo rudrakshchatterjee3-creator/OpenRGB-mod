@@ -630,8 +630,14 @@ static int common_main(int argc, char* argv[])
     \*-----------------------------------------------------*/
     if(!(ret_flags & RET_FLAG_NO_AUTO_CONNECT))
     {
-        // Simply open the URL. This guarantees the UI will appear in their default browser (Chrome/Edge/Firefox)
-        ShellExecuteA(NULL, "open", "http://localhost:3000", NULL, NULL, SW_SHOW);
+        // Try launching Edge in frameless PWA mode for a premium look
+        HINSTANCE result = ShellExecuteA(NULL, "open", "msedge", "--app=http://localhost:3000 --window-size=1200,800", NULL, SW_SHOW);
+        
+        // If ShellExecute returns a value <= 32, it means the executable wasn't found or failed
+        if ((reinterpret_cast<intptr_t>(result)) <= 32) {
+            // Fallback: Simply open the URL in the system's default browser (Chrome/Firefox/Brave)
+            ShellExecuteA(NULL, "open", "http://localhost:3000", NULL, NULL, SW_SHOW);
+        }
     }
     /*-----------------------------------------------------*\
     | Perform application startup and run the application.  |
