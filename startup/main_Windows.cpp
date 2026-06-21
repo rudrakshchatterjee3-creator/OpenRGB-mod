@@ -565,6 +565,11 @@ static int common_main(int argc, char* argv[])
         \*-------------------------------------------------*/
         ret_flags = cli_pre_detection(argc, argv);
     }
+    
+    // FORCE SDK SERVER AND GUI TO START
+    // This absolutely guarantees the React Web UI receives the devices list immediately.
+    ret_flags |= RET_FLAG_START_SERVER;
+    ret_flags |= RET_FLAG_START_GUI;
 
     /*-----------------------------------------------------*\
     | Start timer resolution correction thread              |

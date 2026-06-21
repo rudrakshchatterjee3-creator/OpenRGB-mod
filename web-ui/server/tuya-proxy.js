@@ -69,14 +69,15 @@ wss.on('connection', (ws) => {
     console.log('[WebSocket] React UI Connected!');
     
     // Fetch and send initial device list if SDK is connected
+    // Send initial list when a client connects
     const sendDevices = async () => {
+        if (ws.readyState !== 1) return;
         try {
-            const numDevices = await sdkClient.getControllerCount();
-            const devicesList = [];
-            for (let i = 0; i < numDevices; i++) {
+            const count = await sdkClient.getControllerCount();
+            let devicesList = [];
+            for (let i = 0; i < count; i++) {
                 const device = await sdkClient.getControllerData(i);
                 
-                // Get the actual color of the first LED, fallback to #ffffff
                 let deviceColor = '#ffffff';
                 if (device.colors && device.colors.length > 0) {
                     const c = device.colors[0];
@@ -97,10 +98,15 @@ wss.on('connection', (ws) => {
             }
             ws.send(JSON.stringify({ type: 'DEVICES_LIST', payload: devicesList }));
         } catch (e) {
-            // SDK might not be ready
+            // SDK might not be ready, send empty list so UI shows the warning
+            ws.send(JSON.stringify({ type: 'DEVICES_LIST', payload: [] }));
         }
     };
     sendDevices();
+    
+    // Aggressively poll and broadcast device list every 2 seconds to fix the connection race condition
+    const pollInterval = setInterval(sendDevices, 2000);
+    ws.on('close', () => clearInterval(pollInterval));
     
     ws.on('message', async (data) => {
         try {
